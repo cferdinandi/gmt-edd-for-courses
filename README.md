@@ -73,6 +73,31 @@ gmt_edd_for_courses_get_download_links( $course_id = null, $email = null );
 ```
 
 
+## Shortcodes
+
+### Dynamic "Buy Now" Links
+
+Create buy now links that disable and display a custom message when the visitor has already purchased the download.
+
+```html
+[edd_for_courses_buy_now id="DOWNLOAD_ID"]
+```
+
+**Options:**
+
+- `checkout` - If `true`, send buyer directly to checkout
+- `gateway` - If `true`, send buyer directly to payment gateway
+- `price` - (integer) A specific price ID to use for variable pricing
+- `discount` - Automatically add a discount code to the purchase
+- `buy` - The language to use for the link
+- `owned` - The language to use if the visitor already owns the download
+- `class` - The class(es) to use for the link
+
+```html
+[edd_for_courses_buy_now id="123" checkout="true" price="2" buy="Buy Now!" owned="You already own this course" class="btn"]
+```
+
+
 
 ## How to Contribute
 
