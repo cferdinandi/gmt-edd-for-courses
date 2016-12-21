@@ -201,3 +201,54 @@
 		return $links;
 
 	}
+
+
+
+	/**
+	 * Create dynamic "Buy Now" links for courses
+	 * @param  array $atts The shortcode arguments
+	 * @return string      The link
+	 */
+	function gmt_edd_for_courses_dynamic_buy_now_links( $atts ) {
+
+		// Get shortcode atts
+		$link = shortcode_atts( array(
+			'id' => null,
+			'checkout' => false,
+			'gateway' => false,
+			'price' => null,
+			'discount' => null,
+			'class' => '',
+			'buy' => 'Buy Now',
+			'owned' => 'You already own this',
+		), $atts );
+
+		// Make sure an ID is provided
+		if ( empty( $link['id'] ) ) return;
+
+		// Create the URL
+		global $post;
+		$base = $link['checkout'] ? edd_get_checkout_uri() : get_permalink( $post->ID );
+		$action = $link['gateway'] ? '?edd_action=straight_to_gateway' : '?edd_action=add_to_cart';
+		$price = is_null( $link['price'] ) ? '' : '&edd_options[price]=' . $link['price'];
+		$discount = is_null( $link['discount'] ) ? '' : '&discount=' . $link['discount'];
+		$url = $base . $action . '&download=' . $link['id'] . $price . $discount;
+
+		// If user is not logged in, show the buy now link
+		if ( !is_user_logged_in() ) {
+			return '<a class="' . $link['class'] . '" href="' . $url . '">' . $link['buy'] . '</a>';
+		}
+
+		// Get courses that the user has purchased
+		$current_user = wp_get_current_user();
+		$downloads = (array) gmt_edd_for_courses_get_user_downloads( $current_user->user_email );
+
+		// If the user already owns the download, disable the buttton
+		if ( array_key_exists( $link['id'], $downloads ) ) {
+			return '<span class="' . $link['class'] . '" href="#" disabled>' . $link['owned'] . '</span>';
+		}
+
+		return '<a class="' . $link['class'] . '" href="' . $url . '">' . $link['buy'] . '</a>';
+
+	}
+	add_shortcode( 'edd_for_courses_buy_now', 'gmt_edd_for_courses_dynamic_buy_now_links' );
