@@ -62,7 +62,7 @@
 			foreach( $payment['downloads'] as $download ) {
 				$downloads[$download['id']] = array(
 					'id' => $download['id'],
-					'price' => $download['options']['price_id'],
+					'price' => ( array_key_exists( 'price_id', $download['options'] ) ? $download['options']['price_id'] : 0 ),
 					'payment' => $payment_id,
 				);
 			}
