@@ -5,7 +5,7 @@
  * Plugin URI: https://github.com/cferdinandi/gmt-edd-for-courses/
  * GitHub Plugin URI: https://github.com/cferdinandi/gmt-edd-for-courses/
  * Description: Adds EDD functionality to the <a href="https://github.com/cferdinandi/gmt-courses/">GMT Courses plugin</a>.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Chris Ferdinandi
  * Author URI: http://gomakethings.com
  * Text Domain: gmt_courses

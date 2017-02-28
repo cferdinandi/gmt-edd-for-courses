@@ -41,7 +41,7 @@
 					<br>
 					<?php if ( edd_has_variable_prices( $download->ID ) ) :	?>
 						<label style="margin-left: 25px;">
-							<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>][0]" value="0" <?php if ( is_array( $access[$download->ID] ) && array_key_exists( 0, $access[$download->ID] ) ) { echo 'checked'; } ?>>
+							<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>][0]" value="0" <?php if ( array_key_exists( $download->ID, $access ) && is_array( $access[$download->ID] ) && array_key_exists( 0, $access[$download->ID] ) ) { echo 'checked'; } ?>>
 							<?php _e( 'Single-price purchase', 'gmt_edd_for_courses' ); ?>
 						</label>
 						<br>
@@ -50,7 +50,7 @@
 							foreach( $prices as $price_key => $price ) :
 						?>
 							<label style="margin-left: 25px;">
-								<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>][<?php echo esc_attr( $price_key ); ?>]" value="<?php echo esc_attr( $price_key ); ?>" <?php if ( is_array( $access[$download->ID] ) && array_key_exists( $price_key, $access[$download->ID] ) ) { echo 'checked'; } ?>>
+								<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>][<?php echo esc_attr( $price_key ); ?>]" value="<?php echo esc_attr( $price_key ); ?>" <?php if ( array_key_exists( $download->ID, $access ) && is_array( $access[$download->ID] ) && array_key_exists( $price_key, $access[$download->ID] ) ) { echo 'checked'; } ?>>
 								<?php echo esc_html( $price['name'] ); ?>
 							</label>
 							<br>
