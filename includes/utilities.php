@@ -112,7 +112,7 @@
 				}
 
 				// If access is based on single price
-				if ( array_key_exists( $download_key, $purchases ) ) {
+				if ( is_array( $purchases ) && array_key_exists( $download_key, $purchases ) ) {
 					$purchased[$course->ID] = array(
 						'id' => $course->ID,
 						'download' => $download_key,
