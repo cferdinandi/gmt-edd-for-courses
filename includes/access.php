@@ -18,7 +18,7 @@
 		$redirect = get_post_meta( $course_id, 'gmt_edd_for_courses_redirects', true );
 
 		// If no redirect is provided, bail
-		if ( $redirect === '' ) return;
+		if ( empty( $redirect ) ) return;
 
 		// If user is logged out, redirect them
 		if ( !is_user_logged_in() ) {
