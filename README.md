@@ -11,7 +11,8 @@ Getting started with EDD for Courses is as simple as installing a plugin:
 
 1. Upload the `gmt-edd-for-courses` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the Plugins menu in WordPress.
-3. Select which downloads should have access to a course under `Lessons` > `Courses` in the Dashboard.
+3. Add the store URL, your EDD API public key and token under `Lessons` > `EDD Options`.
+4. Select which downloads should have access to a course under `Lessons` > `Courses` in the Dashboard.
 
 And that's it, you're done. Nice work!
 
@@ -23,11 +24,12 @@ It's recommended that you also install the [GitHub Updater plugin](https://githu
 
 ```php
 /**
- * Get all available downloads
- * @param  boolean $any If true, get all downloads, including unpublished
+ * Get data from the EDD API
+ * @param  string $type The type of data to get from the EDD API
+ * @param  array  $args Any API arguments you want to add to the EDD API query
  * @return array        The downloads
  */
-gmt_edd_for_courses_get_downloads( $any = true );
+ function gmt_edd_for_courses_get_from_api( $type = 'products', $args = array() )
 
 
 /**
@@ -71,32 +73,6 @@ gmt_edd_for_courses_user_has_access( $course_id = null, $email = null );
  */
 gmt_edd_for_courses_get_download_links( $course_id = null, $email = null );
 ```
-
-
-## Shortcodes
-
-### Dynamic "Buy Now" Links
-
-Create buy now links that disable and display a custom message when the visitor has already purchased the download.
-
-```html
-[edd_for_courses_buy_now id="DOWNLOAD_ID"]
-```
-
-**Options:**
-
-- `checkout` - If `true`, send buyer directly to checkout
-- `gateway` - If `true`, send buyer directly to payment gateway
-- `price` - (integer) A specific price ID to use for variable pricing
-- `discount` - Automatically add a discount code to the purchase
-- `buy` - The language to use for the link
-- `owned` - The language to use if the visitor already owns the download
-- `class` - The class(es) to use for the link
-
-```html
-[edd_for_courses_buy_now id="123" checkout="true" price="2" buy="Buy Now!" owned="You already own this course" class="btn"]
-```
-
 
 
 ## How to Contribute

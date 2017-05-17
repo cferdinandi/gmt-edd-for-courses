@@ -2,18 +2,24 @@
 
 
 	/**
-	 * Get all available downloads
-	 * @param  boolean $any If true, get all downloads, including unpublished
+	 * Get data from the EDD API
+	 * @param  string $type The type of data to get from the EDD API
+	 * @param  array  $args Any API arguments you want to add to the EDD API query
 	 * @return array        The downloads
 	 */
-	function gmt_edd_for_courses_get_downloads( $any = true ) {
-		return get_posts(array(
-			'posts_per_page'   => -1,
-			'post_type'        => 'download',
-			'post_status'      => ( $any ? 'any' : 'publish' ),
-			'orderby'          => 'menu_order',
-			'order'            => 'ASC',
-		));
+	function gmt_edd_for_courses_get_from_api( $type = 'products', $args = array() ) {
+		$options = edd_for_courses_get_theme_options();
+		$url = rtrim($options['url'], '/') . '/edd-api/' . $type . '/';
+		$url = add_query_arg(array(
+			'key' => $options['public_key'],
+			'token' => $options['token'],
+		), $url);
+		foreach ($args as $key => $value) {
+			$url = add_query_arg($key, $value, $url);
+		}
+		$request = wp_remote_post( $url );
+		$response = wp_remote_retrieve_body( $request );
+		return json_decode( $response, true );
 	}
 
 
@@ -44,29 +50,15 @@
 
 		if ( empty( $email ) ) return;
 
-		// Get the customer
-		$customer = new EDD_Customer( $email );
-		if ( $customer->id === 0 ) return;
-
-		// Get customer payment IDs
-		$payment_ids = explode( ',', $customer->payment_ids );
-
-		// Get the downloads
+		// Variables
+		$purchases = gmt_edd_for_courses_get_from_api( $type = 'sales', array('email' => $email) );
 		$downloads = array();
-		foreach( $payment_ids as $payment_id ) {
 
-			// Get the payment
-			$payment = edd_get_payment_meta( $payment_id );
-
-			// Create an array of downloads for this payment
-			foreach( $payment['downloads'] as $download ) {
-				$downloads[$download['id']] = array(
-					'id' => $download['id'],
-					'price' => ( array_key_exists( 'price_id', $download['options'] ) ? $download['options']['price_id'] : 0 ),
-					'payment' => $payment_id,
-				);
+		// Get download and price name
+		foreach($purchases['sales'] as $purchase) {
+			foreach($purchase['products'] as $product) {
+				$downloads[$product['id']] = strtolower( str_replace( ' ', '', $product['price_name'] ) );
 			}
-
 		}
 
 		return $downloads;
@@ -86,7 +78,7 @@
 
 		// Variables
 		$purchases = gmt_edd_for_courses_get_user_downloads( $email );
-		$courses = gmt_edd_for_courses_get_courses();
+		$courses = gmt_edd_for_courses_get_courses( false );
 		$purchased = array();
 
 		// Check each course to see if the user has access
@@ -96,28 +88,27 @@
 			$downloads = (array) get_post_meta( $course->ID, 'gmt_edd_for_courses_downloads', true );
 
 			// Check the course against purchased downloads
-			foreach( $downloads as $download_key => $download  ) {
+			foreach( $downloads as $download_id => $prices ) {
 
-				// If access is based on tiered pricing
-				if ( is_array( $download ) ) {
-					if ( array_key_exists( $purchases[$download_key]['price'], $download ) ) {
-						$purchased[$course->ID] = array(
-							'id' => $course->ID,
-							'download' => $download_key,
-							'payment' => $purchases[$download_key]['payment'],
-							'price' => $purchases[$download_key]['price'],
-						);
-					}
+				// If user hasn't purchased this download, skip to the next one
+				if ( !array_key_exists( $download_id, $purchases ) ) continue;
+
+				// If there's just a single price
+				if ( empty( array_search( reset( $prices ), $prices ) ) ) {
+					$purchased[$course->ID] = array(
+						'course_id' => $course->ID,
+						'download_id' => $download_id,
+						'price' => 0,
+					);
 					continue;
 				}
 
-				// If access is based on single price
-				if ( is_array( $purchases ) && array_key_exists( $download_key, $purchases ) ) {
+				// If there are multiple prices
+				if ( array_key_exists( $purchases[$download_id], $prices ) ) {
 					$purchased[$course->ID] = array(
-						'id' => $course->ID,
-						'download' => $download_key,
-						'payment' => $purchases[$download_key]['payment'],
-						'price' => $purchases[$download_key]['price'],
+						'course_id' => $course->ID,
+						'download_id' => $download_id,
+						'price' => $purchases[$download_id],
 					);
 				}
 
@@ -143,20 +134,19 @@
 
 		// Variables
 		$purchases = gmt_edd_for_courses_get_user_downloads( $email );
-		$course = get_post( $course_id );
 		$downloads = (array) get_post_meta( $course_id, 'gmt_edd_for_courses_downloads', true );
 
 		// Check the course against purchased downloads
-		foreach( $downloads as $download_key => $download  ) {
+		foreach( $downloads as $download_id => $prices ) {
 
-			// If access is based on tiered pricing
-			if ( is_array( $download ) ) {
-				if ( array_key_exists( $purchases[$download_key]['price'], $download ) ) return true;
-				continue;
-			}
+			// If user hasn't purchased this download, skip to the next one
+			if ( !array_key_exists( $download_id, $purchases ) ) continue;
 
-			// If access is based on single price
-			if ( array_key_exists( $download_key, $purchases ) ) return true;
+			// If there's just a single price
+			if ( empty( array_search( reset( $prices ), $prices ) ) ) return true;
+
+			// If there are multiple prices
+			if ( array_key_exists( $purchases[$download_id], $prices ) ) return true;
 
 		}
 
@@ -171,84 +161,40 @@
 	 * @param  number $course_id The course ID
 	 * @param  string $email     The user's email address
 	 * @return array             The course downloads
+	 * @todo   Figure out a way to restrict files by access levels
 	 */
 	function gmt_edd_for_courses_get_download_links( $course_id = null, $email = null ) {
 
 		if ( empty( $course_id ) || empty( $email ) ) return;
 
-		// @todo
-
 		// Get courses user has purchased
 		$downloads = gmt_edd_for_courses_get_purchased_courses( $email );
+		$purchases = gmt_edd_for_courses_get_user_downloads( $email );
 
 		// If course doesn't exist, bail
 		if ( !array_key_exists( $course_id, $downloads ) ) return;
 
-		// Variables
-		$files = edd_get_download_files( $downloads[$course_id]['download'], $downloads[$course_id]['price'] );
-		$key = edd_get_payment_key( $downloads[$course_id]['payment'] );
+		// Setup our links placeholder
 		$links = array();
 
-		// Get the download URLs
-		foreach( $files as $file_key => $file ) {
-			$links[] = array(
-				'name' => $file['name'],
-				'file' => $file['file'],
-				'url' => edd_get_download_file_url( $key, $email, $file_key, $downloads[$course_id]['download'], $downloads[$course_id]['price'] ),
-			);
+		// Get the links for each download
+		foreach($downloads as $download) {
+
+			// Get the product
+			$product = gmt_edd_for_courses_get_from_api( 'products', array('product' => $download['download_id'] ) );
+
+			// Make sure the product has files
+			if ( !is_array($product) || !array_key_exists('products', $product) || !array_key_exists('files', $product['products'][0]) ) continue;
+
+			// Get the link for each product file
+			foreach($product['products'][0]['files'] as $file) {
+				$links[] = array(
+					'name' => $file['name'],
+					'url' => $file['file'],
+				);
+			}
 		}
 
 		return $links;
 
 	}
-
-
-
-	/**
-	 * Create dynamic "Buy Now" links for courses
-	 * @param  array $atts The shortcode arguments
-	 * @return string      The link
-	 */
-	function gmt_edd_for_courses_dynamic_buy_now_links( $atts ) {
-
-		// Get shortcode atts
-		$link = shortcode_atts( array(
-			'id' => null,
-			'checkout' => false,
-			'gateway' => false,
-			'price' => null,
-			'discount' => null,
-			'class' => '',
-			'buy' => 'Buy Now',
-			'owned' => 'You already own this',
-		), $atts );
-
-		// Make sure an ID is provided
-		if ( empty( $link['id'] ) ) return;
-
-		// Create the URL
-		global $post;
-		$base = $link['checkout'] ? edd_get_checkout_uri() : get_permalink( $post->ID );
-		$action = $link['gateway'] ? '?edd_action=straight_to_gateway' : '?edd_action=add_to_cart';
-		$price = is_null( $link['price'] ) ? '' : '&edd_options[price]=' . $link['price'];
-		$discount = is_null( $link['discount'] ) ? '' : '&discount=' . $link['discount'];
-		$url = $base . $action . '&download=' . $link['id'] . $price . $discount;
-
-		// If user is not logged in, show the buy now link
-		if ( !is_user_logged_in() ) {
-			return '<a class="' . $link['class'] . '" href="' . $url . '">' . $link['buy'] . '</a>';
-		}
-
-		// Get courses that the user has purchased
-		$current_user = wp_get_current_user();
-		$downloads = (array) gmt_edd_for_courses_get_user_downloads( $current_user->user_email );
-
-		// If the user already owns the download, disable the buttton
-		if ( array_key_exists( $link['id'], $downloads ) ) {
-			return '<span class="' . $link['class'] . '" href="#" disabled>' . $link['owned'] . '</span>';
-		}
-
-		return '<a class="' . $link['class'] . '" href="' . $url . '">' . $link['buy'] . '</a>';
-
-	}
-	add_shortcode( 'edd_for_courses_buy_now', 'gmt_edd_for_courses_dynamic_buy_now_links' );
