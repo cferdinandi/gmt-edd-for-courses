@@ -35,18 +35,29 @@
 
 				<?php foreach( $downloads['products'] as $download ) : ?>
 					<p><strong><?php echo esc_html( $download['info']['title'] ); ?></strong></p>
-					<?php foreach( $download['pricing'] as $label => $price ) : ?>
+					<?php foreach( $download['pricing_extended'] as $label => $price ) : ?>
 						<label>
+							<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download['info']['id'] ); ?>][<?php echo esc_attr( $price['index'] ); ?>]" value="on" <?php if ( array_key_exists($download['info']['id'], $access) && array_key_exists($price['index'], $access[$download['info']['id']]) && $access[$download['info']['id']][$price['index']] === 'on' ) { echo 'checked="checked"'; } ?>>
 							<?php if ( count( $download['pricing'] ) < 2 ) : ?>
-								<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download['info']['id'] ); ?>][]" value="on" <?php if ( array_key_exists($download['info']['id'], $access) && array_key_exists(0, $access[$download['info']['id']]) && $access[$download['info']['id']][0] === 'on' ) { echo 'checked="checked"'; } ?>>
 								<?php _e( 'All prices', 'gmt_edd_for_courses' ); ?>
 							<?php else : ?>
-								<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download['info']['id'] ); ?>][<?php echo esc_attr( $label ); ?>]" value="on" <?php if ( array_key_exists($download['info']['id'], $access) && array_key_exists($label, $access[$download['info']['id']]) && $access[$download['info']['id']][$label] === 'on' ) { echo 'checked="checked"'; } ?>>
 								<?php echo esc_html( $label ); ?>
 							<?php endif; ?>
 						</label>
 						<br>
 					<?php endforeach; ?>
+					<?php if ( !empty($download['bundled_products']) ) : ?>
+						<div style="margin-left: 20px;">
+							<p><em>Product to Use for Files</em></p>
+							<?php foreach( $download['bundled_products'] as $bundle ) : ?>
+								<label>
+									<input type="radio" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download['info']['id'] ); ?>][bundles]" value="<?php echo esc_attr( $bundle['id'] . '_' . $bundle['price_id'] ); ?>" <?php if ( array_key_exists($download['info']['id'], $access) && array_key_exists('bundles', $access[$download['info']['id']]) && $access[$download['info']['id']]['bundles'] === $bundle['id'] . '_' . $bundle['price_id'] ) { echo 'checked="checked"'; } ?>>
+									<?php echo esc_html( $bundle['name'] . (empty($bundle['price_name']) ? '' : ' - ' . $bundle['price_name']) ); ?>
+								</label>
+								<br>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
 				<?php endforeach; ?>
 
 			</fieldset>
@@ -125,6 +136,10 @@
 		if ( isset( $_POST['gmt_edd_for_courses_downloads'] ) ) {
 			foreach( $_POST['gmt_edd_for_courses_downloads'] as $download_key => $download ) {
 				foreach($download as $price_key => $price) {
+					if ( $price_key === 'bundles' ) {
+						$sanitized[$download_key]['bundles'] = $price;
+						continue;
+					}
 					$sanitized[$download_key][$price_key] = 'on';
 				}
 			}

@@ -54,10 +54,10 @@
 		$purchases = gmt_edd_for_courses_get_from_api( $type = 'sales', array('email' => $email) );
 		$downloads = array();
 
-		// Get download and price name
+		// Get download and price ID
 		foreach($purchases['sales'] as $purchase) {
 			foreach($purchase['products'] as $product) {
-				$downloads[$product['id']] = strtolower( str_replace( ' ', '', $product['price_name'] ) );
+				$downloads[$product['id']] = ( empty( $product['price_id'] ) ? 0 : $product['price_id'] );
 			}
 		}
 
@@ -93,23 +93,21 @@
 				// If user hasn't purchased this download, skip to the next one
 				if ( !array_key_exists( $download_id, $purchases ) ) continue;
 
-				// If there's just a single price
-				if ( empty( array_search( reset( $prices ), $prices ) ) ) {
-					$purchased[$course->ID] = array(
-						'course_id' => $course->ID,
-						'download_id' => $download_id,
-						'price' => 0,
-					);
-					continue;
-				}
+				// If the allowed price index for the download doesn't match, skip to the next one
+				if ( !array_key_exists( $purchases[$download_id], $prices ) ) continue;
 
-				// If there are multiple prices
-				if ( array_key_exists( $purchases[$download_id], $prices ) ) {
-					$purchased[$course->ID] = array(
-						'course_id' => $course->ID,
-						'download_id' => $download_id,
-						'price' => $purchases[$download_id],
-					);
+				// Add purchased course data
+				$purchased[$course->ID] = array(
+					'course_id' => $course->ID,
+					'download_id' => $download_id,
+					'price' => $purchases[$download_id],
+				);
+
+				// If a bundle, add the bundled download to use for files
+				if ( array_key_exists('bundles', $prices) ) {
+					$bundle_data = explode('_', $prices['bundles']);
+					$purchased[$course->ID]['bundle_id'] = $bundle_data[0];
+					$purchased[$course->ID]['bundle_price'] = $bundle_data[1];
 				}
 
 			}
@@ -169,7 +167,6 @@
 
 		// Get courses user has purchased
 		$downloads = gmt_edd_for_courses_get_purchased_courses( $email );
-		$purchases = gmt_edd_for_courses_get_user_downloads( $email );
 
 		// If course doesn't exist, bail
 		if ( !array_key_exists( $course_id, $downloads ) ) return;
@@ -181,13 +178,20 @@
 		foreach($downloads as $download) {
 
 			// Get the product
-			$product = gmt_edd_for_courses_get_from_api( 'products', array('product' => $download['download_id'] ) );
+			// $product = gmt_edd_for_courses_get_from_api( 'products', array('product' => $download['download_id'] ) );
+			$no_bundle = empty($download['bundle_id']);
+			$product = $no_bundle ? gmt_edd_for_courses_get_from_api( 'products', array('product' => $download['download_id'] ) ) : gmt_edd_for_courses_get_from_api( 'products', array('product' => $download['bundle_id'] ) );
 
 			// Make sure the product has files
 			if ( !is_array($product) || !array_key_exists('products', $product) || !array_key_exists('files', $product['products'][0]) ) continue;
 
 			// Get the link for each product file
-			foreach($product['products'][0]['files'] as $file) {
+			foreach ( $product['products'][0]['files'] as $file ) {
+
+				// Check if file is available for purchased price
+				if ( array_key_exists( 'condition', $file ) && !in_array( $file['condition'], array( 'all', $download['price'] ) ) && ( !$no_bundle && !in_array( $file['condition'], array( 'all', $download['bundle_price'] ) ) ) ) continue;
+
+				// Push file to links
 				$links[] = array(
 					'name' => $file['name'],
 					'url' => $file['file'],
