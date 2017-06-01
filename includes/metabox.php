@@ -24,8 +24,8 @@
 
 		// Variables
 		global $post;
-		$downloads = gmt_edd_for_courses_get_downloads();
 		$access = (array) get_post_meta( $post->ID, 'gmt_edd_for_courses_downloads', true );
+		$downloads = gmt_edd_for_courses_get_from_api();
 
 		?>
 
@@ -33,28 +33,30 @@
 
 			<fieldset>
 
-				<?php foreach( $downloads as $download ) : ?>
-					<label>
-						<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>]" value="<?php echo esc_attr( $download->ID ); ?>" <?php if ( array_key_exists( $download->ID, $access ) ) { echo 'checked'; } ?>>
-						<?php echo $download->post_title; ?>
-					</label>
-					<br>
-					<?php if ( edd_has_variable_prices( $download->ID ) ) :	?>
-						<label style="margin-left: 25px;">
-							<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>][0]" value="0" <?php if ( array_key_exists( $download->ID, $access ) && is_array( $access[$download->ID] ) && array_key_exists( 0, $access[$download->ID] ) ) { echo 'checked'; } ?>>
-							<?php _e( 'Single-price purchase', 'gmt_edd_for_courses' ); ?>
+				<?php foreach( $downloads['products'] as $download ) : ?>
+					<p><strong><?php echo esc_html( $download['info']['title'] ); ?></strong></p>
+					<?php foreach( $download['pricing_extended'] as $label => $price ) : ?>
+						<label>
+							<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download['info']['id'] ); ?>][<?php echo esc_attr( $price['index'] ); ?>]" value="on" <?php if ( array_key_exists($download['info']['id'], $access) && array_key_exists($price['index'], $access[$download['info']['id']]) && $access[$download['info']['id']][$price['index']] === 'on' ) { echo 'checked="checked"'; } ?>>
+							<?php if ( count( $download['pricing'] ) < 2 ) : ?>
+								<?php _e( 'All prices', 'gmt_edd_for_courses' ); ?>
+							<?php else : ?>
+								<?php echo esc_html( $label ); ?>
+							<?php endif; ?>
 						</label>
 						<br>
-						<?php
-							$prices = edd_get_variable_prices( $download->ID );
-							foreach( $prices as $price_key => $price ) :
-						?>
-							<label style="margin-left: 25px;">
-								<input type="checkbox" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download->ID ); ?>][<?php echo esc_attr( $price_key ); ?>]" value="<?php echo esc_attr( $price_key ); ?>" <?php if ( array_key_exists( $download->ID, $access ) && is_array( $access[$download->ID] ) && array_key_exists( $price_key, $access[$download->ID] ) ) { echo 'checked'; } ?>>
-								<?php echo esc_html( $price['name'] ); ?>
-							</label>
-							<br>
-						<?php endforeach; ?>
+					<?php endforeach; ?>
+					<?php if ( !empty($download['bundled_products']) ) : ?>
+						<div style="margin-left: 20px;">
+							<p><em>Product to Use for Files</em></p>
+							<?php foreach( $download['bundled_products'] as $bundle ) : ?>
+								<label>
+									<input type="radio" name="gmt_edd_for_courses_downloads[<?php echo esc_attr( $download['info']['id'] ); ?>][bundles]" value="<?php echo esc_attr( $bundle['id'] . '_' . $bundle['price_id'] ); ?>" <?php if ( array_key_exists($download['info']['id'], $access) && array_key_exists('bundles', $access[$download['info']['id']]) && $access[$download['info']['id']]['bundles'] === $bundle['id'] . '_' . $bundle['price_id'] ) { echo 'checked="checked"'; } ?>>
+									<?php echo esc_html( $bundle['name'] . (empty($bundle['price_name']) ? '' : ' - ' . $bundle['price_name']) ); ?>
+								</label>
+								<br>
+							<?php endforeach; ?>
+						</div>
 					<?php endif; ?>
 				<?php endforeach; ?>
 
@@ -133,14 +135,12 @@
 		$sanitized = array();
 		if ( isset( $_POST['gmt_edd_for_courses_downloads'] ) ) {
 			foreach( $_POST['gmt_edd_for_courses_downloads'] as $download_key => $download ) {
-				if ( is_array( $download ) ) {
-					$prices = array();
-					foreach( $download as $price_key => $price ) {
-						$prices[$price_key] = 'on';
+				foreach($download as $price_key => $price) {
+					if ( $price_key === 'bundles' ) {
+						$sanitized[$download_key]['bundles'] = $price;
+						continue;
 					}
-					$sanitized[$download_key] = $prices;
-				} else {
-					$sanitized[$download_key] = 'on';
+					$sanitized[$download_key][$price_key] = 'on';
 				}
 			}
 		}
