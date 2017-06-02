@@ -9,7 +9,7 @@
 	 */
 	function gmt_edd_for_courses_get_from_api( $type = 'products', $args = array() ) {
 		$options = edd_for_courses_get_theme_options();
-		$url = rtrim($options['url'], '/') . '/edd-api/' . $type . '/';
+		$url = rtrim($options['url'], '/') . '/edd-api/v2/' . $type . '/';
 		$url = add_query_arg(array(
 			'key' => $options['public_key'],
 			'token' => $options['token'],
