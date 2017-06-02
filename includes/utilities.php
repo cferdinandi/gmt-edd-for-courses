@@ -13,6 +13,7 @@
 		$url = add_query_arg(array(
 			'key' => $options['public_key'],
 			'token' => $options['token'],
+			'number' => '-1',
 		), $url);
 		foreach ($args as $key => $value) {
 			$url = add_query_arg($key, $value, $url);
