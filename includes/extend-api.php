@@ -2,9 +2,9 @@
 
 	function gmt_edd_for_courses_get_product_data( $product ) {
 		if ( edd_has_variable_prices( $product['info']['id'] ) ) {
-			foreach ( edd_get_variable_prices( $product['info']['id'] ) as $price ) {
+			foreach ( edd_get_variable_prices( $product['info']['id'] ) as $price_key => $price ) {
 				$product['pricing_extended'][ sanitize_key( $price['name'] ) ] = array(
-					'index' => ( empty( $price['index'] ) ? 0 : $price['index'] ),
+					'index' => ( empty( $price['index'] ) ? $price_key : $price['index'] ),
 					'amount' => $price['amount'],
 				);
 			}
