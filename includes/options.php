@@ -45,6 +45,30 @@
 		<?php
 	}
 
+	function edd_for_courses_settings_field_wp_api_url() {
+		$options = edd_for_courses_get_theme_options();
+		?>
+		<input type="url" name="edd_for_courses_theme_options[wp_api_url]" class="regular-text" id="edd_for_courses_wp_api_url" value="<?php echo esc_attr( $options['wp_api_url'] ); ?>" />
+		<label class="description" for="edd_for_courses_wp_api_url"><?php _e( 'The URL of the course website', 'edd_for_courses' ); ?></label>
+		<?php
+	}
+
+	function edd_for_courses_settings_field_wp_api_username() {
+		$options = edd_for_courses_get_theme_options();
+		?>
+		<input type="text" name="edd_for_courses_theme_options[wp_api_username]" class="regular-text" id="edd_for_courses_wp_api_username" value="<?php echo esc_attr( $options['wp_api_username'] ); ?>" />
+		<label class="description" for="edd_for_courses_wp_api_username"><?php _e( 'WP REST API Username', 'edd_for_courses' ); ?></label>
+		<?php
+	}
+
+	function edd_for_courses_settings_field_wp_api_password() {
+		$options = edd_for_courses_get_theme_options();
+		?>
+		<input type="text" name="edd_for_courses_theme_options[wp_api_password]" class="regular-text" id="edd_for_courses_wp_api_password" value="<?php echo esc_attr( $options['wp_api_password'] ); ?>" />
+		<label class="description" for="edd_for_courses_wp_api_password"><?php _e( 'WP REST API Password (note: this is NOT your normal password)', 'edd_for_courses' ); ?></label>
+		<?php
+	}
+
 
 
 	/**
@@ -60,6 +84,9 @@
 			'url' => '',
 			'public_key' => '',
 			'token' => '',
+			'wp_api_url' => '',
+			'wp_api_username' => '',
+			'wp_api_password' => '',
 		);
 
 		$defaults = apply_filters( 'edd_for_courses_default_theme_options', $defaults );
@@ -82,6 +109,15 @@
 
 		if ( isset( $input['token'] ) && ! empty( $input['token'] ) )
 			$output['token'] = wp_filter_nohtml_kses( $input['token'] );
+
+		if ( isset( $input['wp_api_url'] ) && ! empty( $input['wp_api_url'] ) )
+			$output['wp_api_url'] = wp_filter_nohtml_kses( $input['wp_api_url'] );
+
+		if ( isset( $input['wp_api_username'] ) && ! empty( $input['wp_api_username'] ) )
+			$output['wp_api_username'] = wp_filter_nohtml_kses( $input['wp_api_username'] );
+
+		if ( isset( $input['wp_api_password'] ) && ! empty( $input['wp_api_password'] ) )
+			$output['wp_api_password'] = wp_filter_nohtml_kses( $input['wp_api_password'] );
 
 		return apply_filters( 'edd_for_courses_theme_options_validate', $output, $input );
 	}
@@ -129,7 +165,8 @@
 		// $title - Section title
 		// $callback - // Section callback (we don't want anything)
 		// $page - // Menu slug, used to uniquely identify the page. See edd_for_courses_theme_options_add_page().
-		add_settings_section( 'edd_for_courses', '', '__return_false', 'edd_for_courses_options' );
+		add_settings_section( 'edd_api', __('EDD API', 'edd_for_courses'), '__return_false', 'edd_for_courses_options' );
+		add_settings_section( 'wp_rest_api', __('WP REST API', 'edd_for_courses'), '__return_false', 'edd_for_courses_options' );
 
 
 		// Register our individual settings fields
@@ -139,9 +176,13 @@
 		// $callback - Function that creates the field (from the Theme Option Fields section).
 		// $page - The menu page on which to display this field.
 		// $section - The section of the settings page in which to show the field.
-		add_settings_field( 'url', __( 'URL', 'edd_for_courses' ), 'edd_for_courses_settings_field_url', 'edd_for_courses_options', 'edd_for_courses' );
-		add_settings_field( 'public_key', __( 'Public Key', 'edd_for_courses' ), 'edd_for_courses_settings_field_public_key', 'edd_for_courses_options', 'edd_for_courses' );
-		add_settings_field( 'token', __( 'Token', 'edd_for_courses' ), 'edd_for_courses_settings_field_token', 'edd_for_courses_options', 'edd_for_courses' );
+		add_settings_field( 'url', __( 'URL', 'edd_for_courses' ), 'edd_for_courses_settings_field_url', 'edd_for_courses_options', 'edd_api' );
+		add_settings_field( 'public_key', __( 'Public Key', 'edd_for_courses' ), 'edd_for_courses_settings_field_public_key', 'edd_for_courses_options', 'edd_api' );
+		add_settings_field( 'token', __( 'Token', 'edd_for_courses' ), 'edd_for_courses_settings_field_token', 'edd_for_courses_options', 'edd_api' );
+
+		add_settings_field( 'wp_api_url', __( 'URL', 'edd_for_courses' ), 'edd_for_courses_settings_field_wp_api_url', 'edd_for_courses_options', 'wp_rest_api' );
+		add_settings_field( 'wp_api_username', __( 'Username', 'edd_for_courses' ), 'edd_for_courses_settings_field_wp_api_username', 'edd_for_courses_options', 'wp_rest_api' );
+		add_settings_field( 'wp_api_password', __( 'Password', 'edd_for_courses' ), 'edd_for_courses_settings_field_wp_api_password', 'edd_for_courses_options', 'wp_rest_api' );
 
 	}
 	add_action( 'admin_init', 'edd_for_courses_theme_options_init' );
@@ -163,7 +204,7 @@
 		// $theme_page = add_theme_page( __( 'Theme Options', 'edd_for_courses' ), __( 'Theme Options', 'edd_for_courses' ), 'edit_theme_options', 'theme_options', 'edd_for_courses_theme_options_render_page' );
 
 		// $theme_page = add_menu_page( __( 'Theme Options', 'edd_for_courses' ), __( 'Theme Options', 'edd_for_courses' ), 'edit_theme_options', 'theme_options', 'edd_for_courses_theme_options_render_page' );
-		$theme_page = add_submenu_page( 'edit.php?post_type=gmt_lessons', __( 'EDD Options', 'edd_for_courses' ), __( 'EDD Options', 'edd_for_courses' ), 'edit_theme_options', 'edd_for_courses_options', 'edd_for_courses_theme_options_render_page' );
+		$theme_page = add_submenu_page( 'options-general.php', __( 'Courses for EDD', 'edd_for_courses' ), __( 'Courses for EDD', 'edd_for_courses' ), 'edit_theme_options', 'edd_for_courses_options', 'edd_for_courses_theme_options_render_page' );
 	}
 	add_action( 'admin_menu', 'edd_for_courses_theme_options_add_page' );
 
