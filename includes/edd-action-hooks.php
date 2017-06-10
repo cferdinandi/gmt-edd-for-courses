@@ -1,17 +1,18 @@
 <?php
 
+
 	/**
 	 * Flush a users cached products when the buy something new
 	 * @param  integer $payment_id The payment ID
 	 */
 	function gmt_edd_for_courses_flush_purchases_on_purchase( $payment_id ) {
 
-		// Get payment data
+		// Variables
 		$payment = edd_get_payment_meta( $payment_id );
-		$email = sanitize_email( $payment['email'] );
-
-		// Get options
+		$email = ( is_array($payment) && array_key_exists('email', $payment) ? sanitize_email( $payment['email'] ) : null );
 		$options = edd_for_courses_get_theme_options();
+
+		if (empty($email)) return;
 
 		// Flush data
 		$flush = wp_remote_request(
@@ -29,6 +30,7 @@
 
 	}
 	add_action( 'edd_complete_purchase', 'gmt_edd_for_courses_flush_purchases_on_purchase', 20 );
+	add_action( 'save_post_edd_payment', 'gmt_edd_for_courses_flush_purchases_on_purchase', 20 );
 
 
 
