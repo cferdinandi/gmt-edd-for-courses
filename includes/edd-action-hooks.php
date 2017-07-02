@@ -58,4 +58,4 @@
 	    do_action( 'gmt_edd_for_courses_flush_products_after', $flush );
 
 	};
-	add_action( 'save_post_downloads', 'gmt_edd_for_courses_flush_products_on_update' );
+	add_action( 'edd_save_download', 'gmt_edd_for_courses_flush_products_on_update' );
